@@ -13,6 +13,6 @@ Images must be formated as so: <br/>
 'img_3.gif'<br/>
 
 ### Have any problems?<br/>
-If you have any issues regarding a generated ePub file and/or a reader, please submit an issue for me to look into it! I want to make this program as accessible and universal as I can, however I can only do so much by myself. So please, if you have any issues, submit and issue, or contact me at thepegning@gmail.com
+If you have any issues regarding a generated ePub file and/or a reader, please submit an issue for me to look into it! I want to make this program as accessible and universal as I can, however I can only do so much by myself. So please, if you have any issues, submit and issue, or contact me at verdecillion@gmail.com
 
 ### Tutorial here soon...

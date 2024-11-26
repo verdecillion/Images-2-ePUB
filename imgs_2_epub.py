@@ -10,6 +10,12 @@ import uuid
 import zipfile
 import threading
 
+# Determine if we are ran in .py or .exe, set the current path to correct one.
+if getattr(sys, 'frozen', False):
+    cur_path = os.path.dirname(os.path.realpath(sys.executable))
+elif __file__:
+    cur_path = os.path.dirname(os.path.realpath(__file__))
+
 debug = True # Set to True for debug prints.
 
 settings={} # Create settings dict.
@@ -81,7 +87,7 @@ def endLoadPrint(msg): ## Get load-print variables and end animation.
 while True: ## Get filepaths from user.
     
     # Tell user the current path.
-    print(f"\nCurrent Path - {os.path.dirname(os.path.realpath(__file__))}")
+    print(f"\nCurrent Path - {cur_path}")
     
     while True: # Get the ePUB path.
         
@@ -120,7 +126,7 @@ while True: ## Get filepaths from user.
             
             # If the image path is blank, set to current directory and break.
             if(settings["img_path"] == ""):
-                settings.update({"img_path": os.path.dirname(os.path.realpath(__file__))})
+                settings.update({"img_path": cur_path})
                 break
             
             # If path invalid, reprompt.

@@ -546,7 +546,7 @@ create_directory(os.path.join(settings["ePUB_path"], settings["filename"]))
 
 create_file(os.path.join( # Create mimetype file.
     settings["ePUB_path"], settings["filename"],"mimetype"), 
-            "application/ePUB+zip")
+            "application/epub+zip")
 
 create_directory(os.path.join( # Create META-INF directory.
     settings["ePUB_path"], 

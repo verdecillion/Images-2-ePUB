@@ -204,7 +204,7 @@ def promptMeta(tochange, question, good, bad, invalidMsg): ## Prompt user for me
 
 # Prompt user for desired filename.
 promptMeta("filename", 
-           "\nePUB File Name (Ex: 'My_Book', 'scott_pilgrim_1.ePUB'): ", False, 
+           "\nePUB File Name (Ex: 'My_Book', 'scott_pilgrim_1.epub'): ", False, 
            ("", "/", "<", ">", ":", "\\", "|", "?", "*"), "\nFile name is blank"
            +" or contains invalid characters. Please provide a file name.")
 
@@ -1018,7 +1018,7 @@ try: # Do the following while catching any errors:
     
     # Open/create ePUB file.
     with zipfile.ZipFile(settings["ePUB_path"]+"\\"+settings["filename"]+
-                         ".ePUB", 'w') as ePUB:
+                         ".epub", 'w') as ePUB:
         
         # Write mimetype file first (needs to be at the top of file).
         ePUB.write(os.path.join(settings["ePUB_path"], settings["filename"], 

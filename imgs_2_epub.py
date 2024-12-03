@@ -16,7 +16,7 @@ if getattr(sys, 'frozen', False):
 elif __file__:
     cur_path = os.path.dirname(os.path.realpath(__file__))
 
-debug = True # Set to True for debug prints.
+debug = False # Set to True for debug prints.
 
 settings={} # Create settings dict.
 
@@ -854,12 +854,14 @@ if settings["legacy"] == "y":
     
     else: # If there are chapters:
         
-        for i in range(len(pagelist)): # Index through pagelist.
+        for i in range(len(settings["chapters"])): # Also index through chapters.
             
-            for j in range(len(settings["chapters"])): # Also index through chapters.
-                
+            for j in range(len(pagelist)): # Index through pagelist.
+            
+                print(i, j)
+                print("pg_"+pagelist[j], settings["chapters"][i])
                 # If the currently indexed page is the start of the currently indexed chapter:
-                if pagelist[i] == settings["chapters"][j]:
+                if "pg_"+pagelist[j] == settings["chapters"][i]:
                     
                     #Generate NCX entry for chapter.
                     ncxLegacy += f"""

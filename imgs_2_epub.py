@@ -9,6 +9,7 @@ from datetime import datetime
 import uuid
 import zipfile
 import threading
+import ast
 
 # Determine if we are ran in .py or .exe, set the current path to correct one.
 if getattr(sys, 'frozen', False):
@@ -16,7 +17,7 @@ if getattr(sys, 'frozen', False):
 elif __file__:
     cur_path = os.path.dirname(os.path.realpath(__file__))
 
-debug = False # Set to True for debug prints.
+debug = True # Set to True for debug prints.
 
 settings={} # Create settings dict.
 
@@ -84,6 +85,29 @@ def endLoadPrint(msg): ## Get load-print variables and end animation.
     processDone = True
     time.sleep(0.2)
 
+def checkMetadata(meta):
+    if meta in settings or settings["data"] == "":
+        return 'BLANK'
+    settings[meta] = 'BLANK'
+    with open(settings["data"], "r") as data:
+        for entry in data.read().splitlines():
+            if entry.split('::')[0] == meta:
+                if entry.split('::')[1].startswith('['):
+                    settings[meta] = ast.literal_eval(entry.split('::')[1])
+                else:
+                    settings[meta] = entry.split('::')[1]
+                return
+        return 'BLANK'
+
+settings["data"] = input("Do you have a metadata file you would like to use? Is so, place it here "
+         +"(Blank to skip): ")
+
+if settings["data"] != "":
+    print('Metadata file is invalid or not found, resorting to regular mode.')
+elif os.path.exists(settings["data"]) == True:
+    pass
+
+
 while True: ## Get filepaths from user.
     
     # Tell user the current path.
@@ -91,35 +115,36 @@ while True: ## Get filepaths from user.
     
     while True: # Get the ePUB path.
         
-        # Prompt user for desired path, set to "ePUB_path" in dict.
-        settings.update({"ePUB_path": input("\nWhere do you want the file to be"
-                                            +" created? (Leave blank for "+
-                                            "current path): ")})
+        if checkMetadata("epub_path") == "BLANK":
+            # Prompt user for desired path, set to "epub_path" in dict.
+            settings.update({"epub_path": input("\nWhere do you want the file to be"
+                                                +" created? (Leave blank for "+
+                                                "current path): ")})
         
          # Debug Print - ePUB Path Input
-        if debug == True: print("ePUB PATH IN: "+settings["ePUB_path"]) 
+        if debug == True: print("ePUB PATH IN: "+settings["epub_path"]) 
         
         # If the path is blank, set it to the current path and break.
-        if(settings["ePUB_path"] == ""):
-            settings.update({"ePUB_path": os.path.dirname(
+        if(settings["epub_path"] == ""):
+            settings.update({"epub_path": os.path.dirname(
                 os.path.realpath(__file__))})
             break
         
         # If the path doesnt exist, is invalid, or otherwise inaccessable, reprompt.
-        elif (os.path.exists(settings["ePUB_path"]) == False):
+        elif (os.path.exists(settings["epub_path"]) == False):
             print("\nPath is invalid!")
             
         else: break # If path is good and not blank, break.
     
-    if debug == True: print("ePUB PATH: "+settings["ePUB_path"]) # Debug Print - Set ePUB Path
+    if debug == True: print("ePUB PATH: "+settings["epub_path"]) # Debug Print - Set ePUB Path
     
     while True: # Get the image path and make sure it has images.
         
         while True: # While true, prompt for image path.
-            
-            settings.update({"img_path": input("\nWhere are your images stored?"
-                                               +" (Leave blank for current"
-                                               +" path): ")}) # Prompt user.
+            if checkMetadata("img_path") == "BLANK":
+                settings.update({"img_path": input("\nWhere are your images stored?"
+                                                +" (Leave blank for current"
+                                                +" path): ")}) # Prompt user.
             
             # Debug Print - Image Path Input
             if debug == True: print("IMAGE PATH IN: "+settings["img_path"])
@@ -171,7 +196,7 @@ while True: ## Get filepaths from user.
             
             if debug == True: print("SORTED IMAGES: "+str(imgs)) # Debug Print - Sorted Images
             
-            print(f"\nPaths set to:\nFile Path - {settings['ePUB_path']}!"
+            print(f"\nPaths set to:\nFile Path - {settings['epub_path']}!"
                   +"\nImage Path - {settings['img_path']}!") # Update user.
             
             break # Break.
@@ -202,51 +227,58 @@ def promptMeta(tochange, question, good, bad, invalidMsg): ## Prompt user for me
             
             break # Break.
 
-# Prompt user for desired filename.
-promptMeta("filename", 
-           "\nePUB File Name (Ex: 'My_Book', 'scott_pilgrim_1.epub'): ", False, 
-           ("", "/", "<", ">", ":", "\\", "|", "?", "*"), "\nFile name is blank"
-           +" or contains invalid characters. Please provide a file name.")
+if checkMetadata("filename") == "BLANK":
+    # Prompt user for desired filename.
+    promptMeta("filename", 
+            "\nePUB File Name (Ex: 'My_Book', 'scott_pilgrim_1.epub'): ", False, 
+            ("", "/", "<", ">", ":", "\\", "|", "?", "*"), "\nFile name is blank"
+            +" or contains invalid characters. Please provide a file name.")
 
+if checkMetadata("title") == "BLANK":
 # Propmpt user for title of ePUB.
-promptMeta("title", "\nWhat's the title of your book (Ex: Scott Pilgrim, Vol 1:" 
-           +" Precious Little Life): ", False, "",
-           "\nTitle cannot be blank. Please provide a title.")
+    promptMeta("title", "\nWhat's the title of your book (Ex: Scott Pilgrim, Vol 1:" 
+            +" Precious Little Life): ", False, "",
+            "\nTitle cannot be blank. Please provide a title.")
 
-# Prompt user for language.
-# [TO-DO: Verify supplied tag is well-formed.]
-promptMeta("lang",
-           "\nWhat language is your book in? MUST be well-formed language tag."
-           +" (Look here for tags: https://r12a.github.io/app-subtags/)\n"       
-           +"(Leave blank for default, 'en-US'): ", False, False,
-           "\nInvalid language tag!")
+if checkMetadata("lang") == "BLANK":
+    # Prompt user for language.
+    # [TO-DO: Verify supplied tag is well-formed.]
+    promptMeta("lang",
+            "\nWhat language is your book in? MUST be well-formed language tag."
+            +" (Look here for tags: https://r12a.github.io/app-subtags/)\n"       
+            +"(Leave blank for default, 'en-US'): ", False, False,
+            "\nInvalid language tag!")
 
 if settings["lang"] == "": settings.update({"lang":"en-US"}) # If blank, set to en-US.
 
-# Prompt user for last modified date.
-promptMeta("dateMod", "\nWhen is the 'last modified' date?"
-           +" (Time must be in UTC format!) (Leave blank for current time): ",
-           False, False, "\nInvalid date modified!")
+if checkMetadata("dateMod") == "BLANK":
+    # Prompt user for last modified date.
+    promptMeta("dateMod", "\nWhen is the 'last modified' date?"
+            +" (Time must be in UTC format!) (Leave blank for current time): ",
+            False, False, "\nInvalid date modified!")
 
 if settings["dateMod"] == "": settings.update({"dateMod": datetime.now(). # If blank, set to now.
                                                strftime("%Y-%m-%dT%H:%M:%SZ")})
-# Prompt for identifier.
-promptMeta("identifier", "\nPlease provide a unique identifier for your ePUB "
-           +"(Ex: UUID, DOI, ISBN)\nFor custom identifiers, "
-           +"include the type at the beginning of the identifier "
-           +"(EX: isbn:#####)\n(Leave blank for random UUID): ", False, False, 
-           "\nInvalid Identifier!")
+    
+if checkMetadata("identifier") == "BLANK":
+    # Prompt for identifier.
+    promptMeta("identifier", "\nPlease provide a unique identifier for your ePUB "
+            +"(Ex: UUID, DOI, ISBN)\nFor custom identifiers, "
+            +"include the type at the beginning of the identifier "
+            +"(EX: isbn:#####)\n(Leave blank for random UUID): ", False, False, 
+            "\nInvalid Identifier!")
 
 # If blank, create random UUID.
 if settings["identifier"] == "": settings.update({"identifier": "uuid:"+
                                                   str(uuid.uuid4())})
 
 while True:
-    # Prompt user for page start.
-    # [TO-DO: Make it more clear what the hell it means.]
-    promptMeta("pageStart", "\nWhat does your book consider 'Page 1'? "
-               +"(0 = Cover, 1 = 'Page 1', etc.): ", False, False,
-               "\nInvalid page!")
+    if checkMetadata("pageStart") == "BLANK":
+        # Prompt user for page start.
+        # [TO-DO: Make it more clear what the hell it means.]
+        promptMeta("pageStart", "\nWhat does your book consider 'Page 1'? "
+                +"(0 = Cover, 1 = 'Page 1', etc.): ", False, False,
+                "\nInvalid page!")
                                                                         
     if settings["pageStart"].isdigit() == True: break # If the answer is a number, go ahead.
     
@@ -254,240 +286,239 @@ while True:
     
 settings.update({"pageStart": int(settings["pageStart"])-1}) # Set answer to dict.
 
-# Prompt user for legacy compatability.
-promptMeta("legacy", "\nWould you like to enable legacy compatability? "
+if checkMetadata("legacy") == "BLANK":
+    # Prompt user for legacy compatability.
+    promptMeta("legacy", "\nWould you like to enable legacy compatability? "
            +"(May be needed for old ePUB readers) (y/n): ", ("y", "n"), False,
            "\nInvalid choice! Please type 'y' or 'n'.")
 
 # Prompt user for table of contents.
-promptMeta("toc", "\nWould you like a table of contents? (y/n): ", ("y", "n"),
-           False, "\nInvalid choice! Please type 'y' or 'n'.")
+if checkMetadata("toc") == "BLANK":
+    promptMeta("toc", "\nWould you like a table of contents? (y/n): ", ("y", "n"),
+            False, "\nInvalid choice! Please type 'y' or 'n'.")
 
-settings.update({"chapters": []}) # Prepare chapter list and chapter name list (to prevent crashes).
-settings.update({"chapName": []})
 
 if settings["toc"] == "y": # If the user wants the TOC, do following.
     
-    while True:
-    
+    if checkMetadata("chapters") == "BLANK":
         while True:
-            
-            # Ask what page the current chapter starts on.
-            chapter = input("\nWhat page does Chapter "
-                            +str(len(settings["chapters"])+1)
-                            +" start? (Leave blank to end): ")
-            
-            if debug == True: print("CHAPTER: "+chapter) # Debug Print - Chapter Number
-            
-            if chapter != "": # If chapter is not blank:
+            while True:
                 
-                if chapter.isdigit(): # If the input is a digit:
+                # Ask what page the current chapter starts on.
+                chapter = input("\nWhat page does Chapter "
+                                +str(len(settings["chapters"])+1)
+                                +" start? (Leave blank to end): ")
                 
-                    if chapter == "0":                        # If the page is 0, append cover page.
-                        settings["chapters"].append("cover")
+                if debug == True: print("CHAPTER: "+chapter) # Debug Print - Chapter Number
+                
+                if chapter != "": # If chapter is not blank:
                     
-                    else: settings["chapters"].append("pg_"+chapter) # Otherwise, append page.
+                    if chapter.isdigit(): # If the input is a digit:
                     
-                else: print("\nNot a page!") # If not digit, invalid.
+                        if chapter == "0":                        # If the page is 0, append cover page.
+                            settings["chapters"].append("cover")
+                        
+                        else: settings["chapters"].append("pg_"+chapter) # Otherwise, append page.
+                        
+                    else: print("\nNot a page!") # If not digit, invalid.
+                
+                else: break # If blank, leave loop.
             
-            else: break # If blank, leave loop.
-        
-        break 
+            break
     
     if debug == True: print("CHAPTERS: "+str(settings["chapters"])) # Debug Print - Chapters List.
 
     # Prompt user for custom chapter names.
-    if len(settings["chapters"]) > 0: promptMeta(
-        "chapName", "\nWould you like to give your chapter custom names? "
-        +"(y/n): ", ("y", "n"), False, 
-        "\nInvalid choice! Please type 'y' or 'n'.")
-
-    settings.update({"chapterNames": []}) # Prepare chapter names list (to prevent crashes). 
+    if checkMetadata("chapName") == "BLANK":
+        if len(settings["chapters"]) > 0: promptMeta(
+            "chapName", "\nWould you like to give your chapter custom names? "
+            +"(y/n): ", ("y", "n"), False, 
+            "\nInvalid choice! Please type 'y' or 'n'.")
     
     if settings["chapName"] == "y": # If user wants custom chapter names:
         
-        for i in range(len(settings["chapters"])): # Index through chapters,
-            
-            name = input("\nPlease give a custom name to Chapter "+str(i+1) # Prompt for name.
-                         +" (Leave blank to skip): ")
-            
-            if name != "": settings["chapterNames"].append(name) # If not blank, apply name.
-            
-            # Otherwise, keep 'Chapter #'.
-            else: settings["chapterNames"].append("Chapter "+str(i+1))
+        if checkMetadata("chapterNames") == "BLANK":
+            for i in range(len(settings["chapters"])): # Index through chapters,
+                
+                name = input("\nPlease give a custom name to Chapter "+str(i+1) # Prompt for name.
+                            +" (Leave blank to skip): ")
+                
+                if name != "": settings["chapterNames"].append(name) # If not blank, apply name.
+                #'.
+                # Otherwise, keep 'Chapter 
+                else: settings["chapterNames"].append("Chapter "+str(i+1))
             
     else:
         # If not chapter names, keep default.
         for i in range(len(settings["chapters"])):
             settings["chapterNames"].append("Chapter "+str(i+1))
 
-# Prompt for# reading dir.
-promptMeta("dir", "\nWhich way should your ePUB be read? (Left-to-right for "
-           +"english and similar languages) (ltr/rtl): ", ("ltr", "rtl"), False,
-           "Not a direction! Please type 'ltr' or 'rtl'")
+if checkMetadata("dir") == "BLANK":
+    # Prompt for reading dir.
+    promptMeta("dir", "\nWhich way should your ePUB be read? (Left-to-right for "
+            +"english and similar languages) (ltr/rtl): ", ("ltr", "rtl"), False,
+            "Not a direction! Please type 'ltr' or 'rtl'")
 
-# Prompt for optional meta.
-promptMeta("optionalMeta", "\nWould you like to include additional metadata, "
-           +"such as authors?\n(It is heavily reccommended to add this metadata"
-           +" in in a seperate app like Calibre or Sigil instead)\n(y/n): ",
-           ("y", "n"), False, "Please put 'y' or 'n'.")
-
-# Create directory indexes for all optional meta to prevent crashes
-settings.update({"titleSort": ""})
-settings.update({"authors":[]})
-settings.update({"authorSort":[]})
-settings.update({"authorAltScript":[]})
-settings.update({"contributors":[]})
-settings.update({"contributorSort":[]})
-settings.update({"contributorAltScript":[]})
-settings.update({"pubdate":""})
-settings.update({"publisher":""})
-settings.update({"desc":""})
+if checkMetadata("optionalMeta") == "BLANK":
+    # Prompt for optional meta.
+    promptMeta("optionalMeta", "\nWould you like to include additional metadata, "
+            +"such as authors?\n(It is heavily reccommended to add this metadata"
+            +" in in a seperate app like Calibre or Sigil instead)\n(y/n): ",
+            ("y", "n"), False, "Please put 'y' or 'n'.")
 
 if settings["optionalMeta"] == "y": # If user wants optional metadata, do the following.
     
-    settings.update({"titleSort": input(
-        "\nHow should your title be sorted? (Ex: The Lord of the Rings -> " # Prompt for title sort.
-        +"Lord of the Rings, The)\n(Leave blank to skip): ")})
+    if checkMetadata("titleSort") == "BLANK":
+        settings.update({"titleSort": input(
+            "\nHow should your title be sorted? (Ex: The Lord of the Rings -> " # Prompt for title sort.
+            +"Lord of the Rings, The)\n(Leave blank to skip): ")})
     
     if debug == True: print("TITLE SORT: "+settings["titleSort"]) # Debug Print - Title Sort
     
-    while True:
-        
-        auth = input("\nWho is an author of the book? (Person/Company that " # Prompt for authors.
-                     +"played a primary role in the creation of the book)\n"
-                     +"(Leave blank to skip/end): ")
-        
-        if debug == True: print("AUTH: "+auth) # Debug Print - Added Author
-        
-        if auth == "": break # If left blank, skip.
-        
-        else: settings["authors"].append(auth) # If not blank, add to authors.
+    if checkMetadata("authors") == "BLANK":
+        while True:
+            
+            auth = input("\nWho is an author of the book? (Person/Company that " # Prompt for authors.
+                        +"played a primary role in the creation of the book)\n"
+                        +"(Leave blank to skip/end): ")
+            
+            if debug == True: print("AUTH: "+auth) # Debug Print - Added Author
+            
+            if auth == "": break # If left blank, skip.
+            
+            else: settings["authors"].append(auth) # If not blank, add to authors.
     
     if debug == True: print("AUTHOR LIST: "+settings["authors"]) # Debug Print - Author Lists
     
     if len(settings["authors"]) > 0: # If the author list is longer than 0:
-        
-        for i in range(len(settings["authors"])): # Index through authors
-            
-            while True:
+        if checkMetadata("authorSort") == "BLANK":
+            for i in range(len(settings["authors"])): # Index through authors
                 
-                # Prompt for author name sort.
-                settings["authorSort"].append(
-                    input("\nFor each author, provide a sort name\n"
-                          +"(Ex: Brian Lee O'Malley -> O'Malley, Bryan Lee)"
-                          +"\nCurrent Author is "
-                          +f"{str(settings['authors'][i])}: "))
-                
-                # Debug Print - Author Sort Input
-                if debug == True: print("AUTHOR SORT: "+settings["authorSort"])
-                
-                # If blank, reprompt.
-                if settings["authorSort"] == "": print("\nPlease provide an "
-                                                       +"author sort.")
-                
-                else: break # Otherwise break.
+                while True:
+                    
+                    # Prompt for author name sort.
+                    settings["authorSort"].append(
+                        input("\nFor each author, provide a sort name\n"
+                            +"(Ex: Brian Lee O'Malley -> O'Malley, Bryan Lee)"
+                            +"\nCurrent Author is "
+                            +f"{str(settings['authors'][i])}: "))
+                    
+                    # Debug Print - Author Sort Input
+                    if debug == True: print("AUTHOR SORT: "+settings["authorSort"])
+                    
+                    # If blank, reprompt.
+                    if settings["authorSort"] == "": print("\nPlease provide an "
+                                                        +"author sort.")
+                    
+                    else: break # Otherwise break.
                 
     if len(settings["authors"]) > 0: # If there are any authors present:
         
-        for i in range(len(settings["authors"])): # Index through authors,
+        if checkMetadata("authorAltScript") == "BLANK":
+            for i in range(len(settings["authors"])): # Index through authors,
+                
+                while True:
+                    
+                    altScript = input( # and prompt for alt scripts.
+                        "\nFor each author, you may provide an alt script "
+                        +"(Ex: 'Hirohiko Araki, en' -> '荒木 飛呂彦, jp')\n"
+                        +"(Leave blank to skip author): ").replace(" ", "")
+                    
+                    if debug == True: print("ALT SCRIPT: "+altScript) # Debug Print - Alt Script Add
+                    
+                    # If a comma is not present, reprompt (attempt to guarantee Name, Tag format).
+                    # [TODO: Make a better system.]
+                    if "," not in altScript: print("\nInvalid Alt-Script!")
+                    
+                    # If alt script is valid, append to list and break.
+                    else:
+                        settings["authorAltScript"].append(altScript)
+                        break
+                    
+                if debug == True: print("ALT SCRIPTS: " # Debug Print - All Alt Scripts
+                                        +settings["authorAltScripts"])
+
+    if checkMetadata("contributors") == "BLANK":
+        while True:
             
-            while True:
-                
-                altScript = input( # and prompt for alt scripts.
-                    "\nFor each author, you may provide an alt script "
-                    +"(Ex: 'Hirohiko Araki, en' -> '荒木 飛呂彦, jp')\n"
-                    +"(Leave blank to skip author): ").replace(" ", "")
-                
-                if debug == True: print("ALT SCRIPT: "+altScript) # Debug Print - Alt Script Add
-                
-                # If a comma is not present, reprompt (attempt to guarantee Name, Tag format).
-                # [TODO: Make a better system.]
-                if "," not in altScript: print("\nInvalid Alt-Script!")
-                
-                # If alt script is valid, append to list and break.
-                else:
-                    settings["authorAltScript"].append(altScript)
-                    break
-                
-            if debug == True: print("ALT SCRIPTS: " # Debug Print - All Alt Scripts
-                                    +settings["authorAltScripts"])
+            contributor = input( # Prompt for contributors.
+                "\nIs there a contributor of the book? (Person/Company that played"
+                +" a secondary role in book creation)\n(Leave blank to skip/end): ")
             
-    while True:
-        
-        contributor = input( # Prompt for contributors.
-            "\nIs there a contributor of the book? (Person/Company that played"
-            +" a secondary role in book creation)\n(Leave blank to skip/end): ")
-        
-        # Debug Print - Contributor Add
-        if debug == True: print("CONTRIBUTOR: "+settings["contributor"]) 
-        
-        # If blank, leave.
-        if contributor == "": break
-        
-        # Otherwise, append contributor to list.
-        else: settings["contributors"].append(contributor)
-        
+            # Debug Print - Contributor Add
+            if debug == True: print("CONTRIBUTOR: "+settings["contributor"]) 
+            
+            # If blank, leave.
+            if contributor == "": break
+            
+            # Otherwise, append contributor to list.
+            else: settings["contributors"].append(contributor)
+            
     if debug == True: print("CONTRIBUTORS: "+settings["contributors"]) # Debug Print - Contributors
     
-    if len(settings["contributors"]) > 0: # If any contributors added:
-        
-        for i in range(len(settings["contributors"])): # Index through contributors, 
+    if checkMetadata("contributorSort") == "BLANK":
+        if len(settings["contributors"]) > 0: # If any contributors added:
             
-            while True:
+            for i in range(len(settings["contributors"])): # Index through contributors, 
                 
-                settings["contributorSort"].append(input( # Prompt for contributor sorts.
-                    "\nFor each contributor, provide a sort name\n"
-                    +"(Ex: Brian Lee O'Malley -> O'Malley, Bryan Lee)\n"
-                    +f"Current Contributor is {settings['contributors'][i]}: "))
-                
-                if debug == True: print("CONTRIBUTOR SORT: " # Debug Print - Contributor Sort Add
-                                        +settings["contributorSort"])
-                
-                if settings["contributorSort"] == "": # If no sort is given, reprompt.
-                    print("\nPlease provide an contributor sort.")
+                while True:
                     
-                else: break # Otherwise break.
-                
-    if len(settings["contributors"]) > 0: # If any contributors added:
-        
-        for i in range(len(settings["contributors"])): # Index through contributors.
-        
-            while True:
-        
-                altScript = input( # Prompt for alt-script.
-                    "\nFor each contributor, you may provide an alt script "
-                    +"(Ex: Hirohiko Araki, en -> 荒木 飛呂彦, jp)\n"
-                    +"(Leave blank to skip contributor): ").replace(" ", "")
-                
-                if debug == True: print("CONTRIBUTOR ALT: "+altScript) # Debug Print - Alt Script
-                
-                # If no comma, invalid (attempt to enforce format)
-                # [TODO: Fix this also.]
-                if "," in altScript != True: print("\nInvalid Alt-Script!")
-                
-                else: # Otherwise, append to list.
-                    settings["contributorAltScript"].append(altScript)
-                    break
-                
-            if debug == True: print("CONTR. ALT SCTIPTS: " # Debug Print - Contributor Alt Scripts
-                                    +settings["contributorAltScripts"])
+                    settings["contributorSort"].append(input( # Prompt for contributor sorts.
+                        "\nFor each contributor, provide a sort name\n"
+                        +"(Ex: Brian Lee O'Malley -> O'Malley, Bryan Lee)\n"
+                        +f"Current Contributor is {settings['contributors'][i]}: "))
+                    
+                    if debug == True: print("CONTRIBUTOR SORT: " # Debug Print - Contributor Sort Add
+                                            +settings["contributorSort"])
+                    
+                    if settings["contributorSort"] == "": # If no sort is given, reprompt.
+                        print("\nPlease provide an contributor sort.")
+                        
+                    else: break # Otherwise break.
+    
+    if checkMetadata("contributorAltScript") == "BLANK":
+        if len(settings["contributors"]) > 0: # If any contributors added:
             
-    # Prompt for publisher.
-    settings.update({"publisher": input("\nDoes your book have a publisher? "
-                                        +"(Leave blank to skip): ")})
+            for i in range(len(settings["contributors"])): # Index through contributors.
+            
+                while True:
+            
+                    altScript = input( # Prompt for alt-script.
+                        "\nFor each contributor, you may provide an alt script "
+                        +"(Ex: Hirohiko Araki, en -> 荒木 飛呂彦, jp)\n"
+                        +"(Leave blank to skip contributor): ").replace(" ", "")
+                    
+                    if debug == True: print("CONTRIBUTOR ALT: "+altScript) # Debug Print - Alt Script
+                    
+                    # If no comma, invalid (attempt to enforce format)
+                    # [TODO: Fix this also.]
+                    if "," in altScript != True: print("\nInvalid Alt-Script!")
+                    
+                    else: # Otherwise, append to list.
+                        settings["contributorAltScript"].append(altScript)
+                        break
+                    
+                if debug == True: print("CONTR. ALT SCTIPTS: " # Debug Print - Contributor Alt Scripts
+                                        +settings["contributorAltScripts"])
+    
+    if checkMetadata("publisher") == "BLANK":
+        # Prompt for publisher.
+        settings.update({"publisher": input("\nDoes your book have a publisher? "
+                                            +"(Leave blank to skip): ")})
     
     if debug == True: print("PUBLISHER: "+settings["publisher"]) # Debug Print - Publisher Add
-            
-    settings.update({"pubdate": input( # Prompt for publication date.
-        "\nWhen was the publication date of your book? "
-        +"(Please write in UTC format)\n(Leave blank to skip): ")})
+    
+    if checkMetadata("pubdate") == "BLANK":
+        settings.update({"pubdate": input( # Prompt for publication date.
+            "\nWhen was the publication date of your book? "
+            +"(Please write in UTC format)\n(Leave blank to skip): ")})
     
     if debug == True: print("PUBLICATION DATE: "+settings["pubdate"]) # Debug Print - Publication
     
-    # Prompt for description.
-    settings.update({"desc": input("\nIf you would like to add a description, "
-                                   +"write it here (Leave blank to skip): ")})
+    if checkMetadata("desc") == "BLANK":
+        # Prompt for description.
+        settings.update({"desc": input("\nIf you would like to add a description, "
+                                    +"write it here (Leave blank to skip): ")})
     
     if debug == True: print("DESCRIPTION: "+settings["desc"]) # Debug Print - Description Add
     
@@ -537,25 +568,25 @@ def create_file(path, write): # Create file function.
     
     except Exception as error: # If error occurs, print to user and quit.
     
-        endLoadPrint(f"\File {path} can't be created. Reason: {error}")
+        endLoadPrint(f"\nFile {path} can't be created. Reason: {error}")
     
         quit()
 
 # Create ePUB file directory.
-create_directory(os.path.join(settings["ePUB_path"], settings["filename"]))
+create_directory(os.path.join(settings["epub_path"], settings["filename"]))
 
 create_file(os.path.join( # Create mimetype file.
-    settings["ePUB_path"], settings["filename"],"mimetype"), 
+    settings["epub_path"], settings["filename"],"mimetype"), 
             "application/epub+zip")
 
 create_directory(os.path.join( # Create META-INF directory.
-    settings["ePUB_path"], 
+    settings["epub_path"], 
     settings["filename"], "META-INF"))
 
-create_directory(os.path.join(settings["ePUB_path"], # Create OEBPS directory.
+create_directory(os.path.join(settings["epub_path"], # Create OEBPS directory.
                               settings["filename"], "OEBPS"))
 
-create_directory(os.path.join(settings["ePUB_path"], # Create OEBPS/images directory.
+create_directory(os.path.join(settings["epub_path"], # Create OEBPS/images directory.
                               settings["filename"], "OEBPS", "images"))
 
 endLoadPrint("\nDirectories Created!\n") # End loading animation.
@@ -567,7 +598,7 @@ startLoadPrint("Copying images") # Start loading animation.
 for i in range(len(imgs)): # Index through images.
     
     shutil.copy(os.path.join(settings["img_path"],imgs[i]), # Copy images from image path to images
-                os.path.join(settings["ePUB_path"], settings["filename"],
+                os.path.join(settings["epub_path"], settings["filename"],
                              "OEBPS","images"))
     
     if debug == True:print(f"COPY {imgs[i]} ") # Debug Print - Image Copied
@@ -611,7 +642,7 @@ startLoadPrint("Creating files") # Start loading.
 
 for i in range(len(imgs)): # Index through image list.
 
-    pageImg = Image.open(os.path.join(settings["ePUB_path"], # Open each image w/ PIL.
+    pageImg = Image.open(os.path.join(settings["epub_path"], # Open each image w/ PIL.
                                       settings["filename"],"OEBPS","images",
                                       imgs[i]))
 
@@ -755,7 +786,7 @@ img.image_{str(page_num)} {{	position: absolute; top: 0px; left: 0px; margin: 0;
 </html>"""
 
     # Set filepath for XHTML file.
-    file_path = os.path.join(settings["ePUB_path"], settings["filename"], 
+    file_path = os.path.join(settings["epub_path"], settings["filename"], 
                              "OEBPS", file_name)
     
     pageImg.close() # Close image.
@@ -763,7 +794,7 @@ img.image_{str(page_num)} {{	position: absolute; top: 0px; left: 0px; margin: 0;
     create_file(file_path, xhtml_code) # Create XHTML file
 
 # Create stylesheet with all generated CSS code.
-create_file(os.path.join(settings["ePUB_path"], settings["filename"],"OEBPS",
+create_file(os.path.join(settings["epub_path"], settings["filename"],"OEBPS",
                          "stylesheet.css"), stylesheet)
 
 # Index through chapters and generate NAV code for them.
@@ -798,11 +829,11 @@ navigation += """
 </html>"""
 
 # Create NAV file.
-create_file(os.path.join(settings["ePUB_path"], settings["filename"],"OEBPS",
+create_file(os.path.join(settings["epub_path"], settings["filename"],"OEBPS",
                          "nav.xhtml"), navigation)
 
 # Create container.xml file.
-create_file(os.path.join(settings["ePUB_path"], settings["filename"],"META-INF",
+create_file(os.path.join(settings["epub_path"], settings["filename"],"META-INF",
                          "container.xml"), 
 """<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">
@@ -814,7 +845,7 @@ create_file(os.path.join(settings["ePUB_path"], settings["filename"],"META-INF",
 </container>""")
 
 # Create Apple Books metadata (for compatability).
-create_file(os.path.join(settings["ePUB_path"], settings["filename"],"META-INF",
+create_file(os.path.join(settings["epub_path"], settings["filename"],"META-INF",
                          "com.apple.ibooks.display-options.xml"), 
 """<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <display_options>
@@ -867,7 +898,7 @@ if settings["legacy"] == "y":
                     ncxLegacy += f"""
     <navPoint id=\"chapter_{j+1}\" playOrder=\"{i-int(settings['pageStart'])}\">
         <navLabel>
-            <text>{settings['chapterNames'][j]}</text>
+            <text>{settings['chapterNames'][i]}</text>
         </navLabel>
         <content src=\"pg_{pagelist[i]}.xhtml\"/>
     </navPoint>"""
@@ -911,7 +942,7 @@ if settings["legacy"] == "y":
 </ncx>"""
 
 # Create NCX document.
-create_file(os.path.join(settings["ePUB_path"], settings["filename"],"OEBPS",
+create_file(os.path.join(settings["epub_path"], settings["filename"],"OEBPS",
                          "toc.ncx"), ncxLegacy)
 
 # Generate some package document code.
@@ -1008,7 +1039,7 @@ package += spine + """
 </package>"""
 
 # Create the package document file.
-create_file(os.path.join(settings["ePUB_path"], settings["filename"],"OEBPS",
+create_file(os.path.join(settings["epub_path"], settings["filename"],"OEBPS",
                          "content.opf"), package)
 
 
@@ -1019,49 +1050,49 @@ startLoadPrint("Creating ePUB") # Start compilation load.
 try: # Do the following while catching any errors:
     
     # Open/create ePUB file.
-    with zipfile.ZipFile(settings["ePUB_path"]+"\\"+settings["filename"]+
+    with zipfile.ZipFile(settings["epub_path"]+"\\"+settings["filename"]+
                          ".epub", 'w') as ePUB:
         
         # Write mimetype file first (needs to be at the top of file).
-        ePUB.write(os.path.join(settings["ePUB_path"], settings["filename"], 
+        ePUB.write(os.path.join(settings["epub_path"], settings["filename"], 
                                 "mimetype"), "mimetype")
         
         # Index every file in /META-INF.
-        for file in os.listdir(os.path.join(settings["ePUB_path"], 
+        for file in os.listdir(os.path.join(settings["epub_path"], 
                                             settings["filename"], "META-INF")):
         
         # Add to /META-INF folder inside ePUB.
-            ePUB.write(os.path.join(settings["ePUB_path"], settings["filename"],
+            ePUB.write(os.path.join(settings["epub_path"], settings["filename"],
                                     "META-INF", file), "META-INF\\"+file)
         
         # Index every file from /OEBPS.
-        for file in os.listdir(os.path.join(settings["ePUB_path"], 
+        for file in os.listdir(os.path.join(settings["epub_path"], 
                                             settings["filename"], "OEBPS")):
             
             # Add to /OEBPS in ePUB.
-            ePUB.write(os.path.join(settings["ePUB_path"], settings["filename"],
+            ePUB.write(os.path.join(settings["epub_path"], settings["filename"],
                                     "OEBPS", file), "OEBPS\\"+file)
 
         # Index every file from /OEBPS/images.
-        for file in os.listdir(os.path.join(settings["ePUB_path"], 
+        for file in os.listdir(os.path.join(settings["epub_path"], 
                                             settings["filename"], "OEBPS", 
                                             "images")):
 
             # Add to /OEBPS/images in ePUB.
-            ePUB.write(os.path.join(settings["ePUB_path"], settings["filename"],
+            ePUB.write(os.path.join(settings["epub_path"], settings["filename"],
                                     "OEBPS", "images", file), "OEBPS\\images\\"
                                                             +file)
 
         # If not in debug, remove directory we initially made files is.
-        if debug != True: shutil.rmtree(os.path.join(settings["ePUB_path"],
+        if debug != True: shutil.rmtree(os.path.join(settings["epub_path"],
                                                      settings["filename"]))
 
 # If any error caught, inform user and quit.
 except Exception as error:
-    print (f"File {os.path.join(settings['ePUB_path'], settings['filename'])}."
+    print (f"File {os.path.join(settings['epub_path'], settings['filename'])}."
            +f"ePUB can't be created. Reason: {error}")
     quit()
 
 # If all succeeds, print path and end load, then quit.
-endLoadPrint(f"\nePUB created at {settings['ePUB_path']}!")
+endLoadPrint(f"\nePUB created at {settings['epub_path']}!")
 quit()

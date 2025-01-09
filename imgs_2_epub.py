@@ -619,6 +619,7 @@ stylesheet = """html, body {
 img {
     max-width:100%;
     max-height:100%;
+    object-fit:contain;
 }"""
 
 # Base navigation code (dynamic parts added later, this code is consitent).
@@ -727,9 +728,10 @@ div.image_cover > img {{
         # Create stylesheet code for pre-page.
         stylesheet += f"""
 
-body.body_{str(page_num)} {{	width: {str(width)}px; height: {str(height)}px;	margin: 0; }}
+body.body_{str(roman(page_num+settings['pageStart']+1))} {{	width: {str(width)}px; height: {str(height)}px;	margin: 0; }}
 
-img.image_{str(page_num)} {{	position: absolute; top: 0px; left: 0px; margin: 0;	z-index: 0; }}"""
+img.image_{str(roman(page_num+settings['pageStart']+1))} {{	position: absolute; top: 0px; left: 0px; margin: 0;	z-index: 0; }}
+"""
 
         # Create manifest data for pre-page.
         manifestXHTML += f"""
@@ -889,8 +891,6 @@ if settings["legacy"] == "y":
             
             for j in range(len(pagelist)): # Index through pagelist.
             
-                print(i, j)
-                print("pg_"+pagelist[j], settings["chapters"][i])
                 # If the currently indexed page is the start of the currently indexed chapter:
                 if "pg_"+pagelist[j] == settings["chapters"][i]:
                     
@@ -900,7 +900,7 @@ if settings["legacy"] == "y":
         <navLabel>
             <text>{settings['chapterNames'][i]}</text>
         </navLabel>
-        <content src=\"pg_{pagelist[i]}.xhtml\"/>
+        <content src=\"pg_{pagelist[j]}.xhtml\"/>
     </navPoint>"""
     
     # End TOC, start page-list.
@@ -941,9 +941,9 @@ if settings["legacy"] == "y":
 </pageList>
 </ncx>"""
 
-# Create NCX document.
-create_file(os.path.join(settings["epub_path"], settings["filename"],"OEBPS",
-                         "toc.ncx"), ncxLegacy)
+    # Create NCX document.
+    create_file(os.path.join(settings["ePUB_path"], settings["filename"],  
+                        "OEBPS", "toc.ncx"), ncxLegacy)
 
 # Generate some package document code.
 package = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
